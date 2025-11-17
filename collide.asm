@@ -332,18 +332,58 @@ check_collision:
 	; Check horizontal collision if dx isn't zero
 	; I think the trick here is:
 	
-	; 1) Figure out which tile is directly above our hero, zero out dy if moving up
-	lda player_abs_y
-	; multiply by 32 (number of tiles in each row):
-	asl
-	asl
-	asl
-	asl
-	asl
-	sec 
-	sbc #32 					; subtract a row since we want the tile above our hero...
-	sta z 						; put this value in "z" - overflow not possible (must be <= 240) 
+	; start of logic/loop:
+	; 1) subtract abs_y if there is at least one
+	; 2) add 32 to z (register we'll use to keep track)
+	; 3) keep pulling from z2 until we're out of abs_y
 
+
+	; 1) Figure out which tile is directly above our hero, zero out dy if moving up
+	ldx player_abs_y 		; (The hilarity of storing y in x is not lost on me.)
+	dex 					; Subtract one because we want the row ABOVE
+							; our player (NOTE: This will break if sprite is in row zero)
+	cpx #0
+	beq done_with_y
+
+	ldy #1 					; (We're using y to go through or data table.)
+find_first_tile:
+	lda #32
+	sta z
+	dex
+get_new_y_value:
+	lda map_data_table_one,y
+	sta z2
+compare_y_with_no_new_load:
+	lda z2
+	cmp z
+	bpl sub_32_from_z2
+	iny
+	iny
+	lda z
+	sec
+	sbc z2
+	sta z
+	beq find_first_tile
+	cpx #0
+	beq done_with_y
+	jmp get_new_y_value
+sub_32_from_z2:
+	sec
+	sbc z
+	sta z2
+	beq next_y
+	cpx #0
+	beq done_with_y
+	lda #32
+	sta z
+	dex
+	jmp compare_y_with_no_new_load
+next_y:
+	iny
+	iny
+	jmp find_first_tile
+
+done_with_y:
 	; now add the x value of our hero to find the tile exactly above...
 	lda player_abs_x
 	clc
@@ -356,9 +396,6 @@ check_collision:
 	sta z 						; above because we want the row above our hero)
 
 
-	sta z3
-
-	ldy #1
 find_first_tile_loop:
 	lda map_data_table_one,y
 	sta z2
@@ -1028,3 +1065,4 @@ sprite_start:
 
 sprite_end:
 	ds 4096 - (sprite_end - sprite_start)	; Ensure correct size of sprite tiles (4096 bytes)
+
