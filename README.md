@@ -10,4 +10,4 @@ As I said in my last lesson, if you're fairly new to programming NES/ASM 6502, y
 - [https://github.com/thomaslantern/nes-basic-graphics](https://github.com/thomaslantern/nes-basic-graphics)
 - [https://github.com/thomaslantern/nes-basic-sound](https://github.com/thomaslantern/nes-basic-sound)
 - [https://github.com/thomaslantern/nes-basic-controls](https://github.com/thomaslantern/nes-basic-controls)
-- [https://github.com/thomaslantern/nes-basic-controls](https://github.com/thomaslantern/nes-birthday-blast)
+- [https://github.com/thomaslantern/nes-birthday-blast)](https://github.com/thomaslantern/nes-birthday-blast)
