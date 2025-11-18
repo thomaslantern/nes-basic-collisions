@@ -1,7 +1,10 @@
 ### Basic Collisions on the NES ###
 ### (or "How I learned to love banging my head against a brick wall") ###
 
-This readme still needs significant updates, but the code as it stands should function. Further details to come!
+This readme still needs significant updates, but the code as it stands should (mostly) function (there are is a corner case of sorts that
+the code does not currently address - can you see/find it?). 
+
+Further details to come!
 
 # nes-basic-collisions
 
