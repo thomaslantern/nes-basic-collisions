@@ -288,9 +288,6 @@ load_sprite:
 	sta $2000 		;; spr$1000, inc+1, AA=$2000 (namespace start)
 
 
-
-
-
 main_loop:
 
 check_ctrl_start:
@@ -339,13 +336,14 @@ check_collision:
 
 
 	; 1) Figure out which tile is directly above our hero, zero out dy if moving up
+	ldy #1 					; (We're using y to go through or data table.)
 	ldx player_abs_y 		; (The hilarity of storing y in x is not lost on me.)
 	dex 					; Subtract one because we want the row ABOVE
 							; our player (NOTE: This will break if sprite is in row zero)
 	cpx #0
 	beq done_with_y
 
-	ldy #1 					; (We're using y to go through or data table.)
+	
 find_first_tile:
 	lda #32
 	sta z
@@ -1073,5 +1071,6 @@ sprite_start:
 
 sprite_end:
 	ds 4096 - (sprite_end - sprite_start)	; Ensure correct size of sprite tiles (4096 bytes)
+
 
 
