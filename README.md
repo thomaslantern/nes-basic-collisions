@@ -1,6 +1,10 @@
 ### Basic Collisions on the NES ###
 ### (or "How I learned to love banging my head against a brick wall") ###
 
+### Update: May 15, 2026 ###
+I believe I've fixed all the issues that were really plaguing me. Expect a bit of delay as I gradually push changes to this project while I implement logic from my other project. It might still take a few weeks to see solid, working code, but please bear with me! :)
+
+
 ### Update: May 9, 2026 ###
 Hooray, I've almost fixed the collision issues I was having in the other project, and will be bringing them here shortly. Thanks for your patience!
 
