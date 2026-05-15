@@ -1,5 +1,5 @@
-	org $BFF0
-	db "NES", $1A
+	org $BFF0					; Header - see other tutorials
+	db "NES", $1A				; for more info
 	db $1
 	db $1
 	db %00000000
@@ -19,17 +19,26 @@ player_abs_y equ $06
 dx equ $07 						; delta x (movement)
 dy equ $08 						; delta y (movement)
 
-clock_cycle equ $09 			; These two labels are for delaying/slowing down
-clock_cycle_end equ $0A			; movement
+n equ $EF 						; NMI-only "register"
 
+nmi_flags equ $F0 				; keeping track of whether waiting/ready (1 yes, 0 no):
+								; -----LVN (L-Logic, V-video, N-NMI)
 
-nmi_flags equ $F0 				; keeping track of whether waiting/ready (1 yes, 0 no): -----LVN (L-Logic, V-video, N-NMI)
-collision_flags equ $F0 		; Flags for collisions: ULRD???? (up, left, right, down, last four for damage :D )
+; Flags for collision_flags: 
+; 765
+; 4X3
+; 210
+collision_flags equ $F1 		
+
+start_collision_high equ $F2 	; MSB for collision logic (player_abs_y - 1)
+start_collision_low equ $F3		; Storage for LSB for collision logic (player_abs_y - 1)
+
 
 ;; REGISTERS ;;
 z3 equ $FD
 z2 equ $FE
 z equ $FF 						; "z" register (for those times when x and y aren't enough abc's)
+
 
 
 ; nmi/irq/reset
@@ -1071,6 +1080,5 @@ sprite_start:
 
 sprite_end:
 	ds 4096 - (sprite_end - sprite_start)	; Ensure correct size of sprite tiles (4096 bytes)
-
 
 
