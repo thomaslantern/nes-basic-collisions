@@ -52,7 +52,7 @@ nmi:
 			tya
 			pha
 
-	; 1) check nmi was completed
+	; check nmi was completed
 	lda nmi_flags
 	and #1 			; check bit 1, did nmi finish?
 	bne finish_nmi  ; if it didn't, get to the end pls
@@ -62,23 +62,23 @@ nmi:
 	ora #1
 	sta nmi_flags
 
-	; 2) for now I'm not sure we need to 
-	; use gfx flag - we're only updating sprites?
+	lda nmi_flags
+	and #%00000100 			; are we ready to check collision?
+	beq gfx_update 			
+	jsr check_bg_collision_in_nmi
+	lda nmi_flags
+	and #%11111011  		; Turn bit 2 off (logic)
+	sta nmi_flags
 
 gfx_update:
 	lda #$02
 	sta $4014
 	lda nmi_flags
-	and #%11111101 			;We're turning bit 1 off ("2")
+	and #%11111101 			; Turn bit 1 off (video)
 	sta nmi_flags
-	
 
 finish_nmi:
-	lda clock_cycle
-	clc
-	adc #1
-	sta clock_cycle
-
+	inc clock_cycle
 	cmp clock_cycle_end
 	bne continue_after_cycle_check
 	lda #0
@@ -96,9 +96,6 @@ continue_after_cycle_check:
 			tax
 		plp
 	pla
-	rti
-
-irq:
 	rti
 
 reset:
