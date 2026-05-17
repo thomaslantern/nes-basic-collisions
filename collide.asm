@@ -26,7 +26,7 @@ nmi_flags equ $F0 				; keeping track of whether waiting/ready (1 yes, 0 no):
 
 ; Flags for collision_flags: 
 ; 765
-; 4X3
+; 4X3 <-- X - YOU ARE HERE
 ; 210
 collision_flags equ $F1 		
 
@@ -40,10 +40,7 @@ z2 equ $FE
 z equ $FF 						; "z" register (for those times when x and y aren't enough abc's)
 
 
-
 ; nmi/irq/reset
-
-
 nmi:
 	pha
 		php
@@ -52,43 +49,35 @@ nmi:
 			tya
 			pha
 
-	; check nmi was completed
+	; check last nmi was completed
 	lda nmi_flags
-	and #1 			; check bit 1, did nmi finish?
+	and #1 						; check bit 1, did nmi finish?
 	bne finish_nmi  ; if it didn't, get to the end pls
 
-	; we're in an NMI, turn the bit on:
+	; we're in an NMI, turn the "NMI" bit on:
 	lda nmi_flags
 	ora #1
 	sta nmi_flags
 
 	lda nmi_flags
-	and #%00000100 			; are we ready to check collision?
-	beq gfx_update 			
+	and #%00000100 			; Are we ready to check collision?
+	beq gfx_update 			; If not, just update the sprites
 	jsr check_bg_collision_in_nmi
 	lda nmi_flags
-	and #%11111011  		; Turn bit 2 off (logic)
-	sta nmi_flags
+	and #%11111011  		; Turn bit 2 off (logic) since
+	sta nmi_flags			; we finished checking bkgd
 
 gfx_update:
 	lda #$02
 	sta $4014
 	lda nmi_flags
-	and #%11111101 			; Turn bit 1 off (video)
+	and #%11111101 			; Turn bit 1 off (video flag)
 	sta nmi_flags
 
 finish_nmi:
-	inc clock_cycle
-	cmp clock_cycle_end
-	bne continue_after_cycle_check
-	lda #0
-	sta clock_cycle
-continue_after_cycle_check:
-	;TODO: theoretically other stuff would happen here...
-
 	lda nmi_flags
-	and #$FE  		; turn off bit 1 - we've now "completed" previous NMI
-	sta nmi_flags
+	and #$FE  				; turn off bit 1 - we've just finished
+	sta nmi_flags 			; the most recent unfinished NMI
 
 			pla
 			tay
