@@ -87,6 +87,120 @@ finish_nmi:
 	pla
 	rti
 
+; Subroutine for checking collisions against BG
+check_bg_collision_in_nmi:
+
+check_bg_collision_upper_left:
+	jsr check_bg_collision_update_2006_lda_2007
+	lda #%10000000
+	jsr check_bg_collision_chk_flag
+
+check_bg_collision_upper:
+	lda #1
+	sta n
+	jsr check_bg_collision_add_to_find_next_spot
+	jsr check_bg_collision_update_2006_lda_2007
+	lda #%01000000
+	jsr check_bg_collision_chk_flag
+
+check_bg_collision_upper_right:
+	lda #1
+	sta n
+	jsr check_bg_collision_add_to_find_next_spot
+	jsr check_bg_collision_update_2006_lda_2007
+	lda #%00100000
+	jsr check_bg_collision_chk_flag
+
+check_bg_collision_left:
+	lda #30
+	sta n
+	jsr check_bg_collision_add_to_find_next_spot
+	jsr check_bg_collision_update_2006_lda_2007
+	lda #%00010000
+	jsr check_bg_collision_chk_flag
+
+
+check_bg_collision_right:
+	lda #2
+	sta n
+	jsr check_bg_collision_add_to_find_next_spot
+	jsr check_bg_collision_update_2006_lda_2007
+	lda #%00001000
+	jsr check_bg_collision_chk_flag
+
+check_bg_collision_lower_left:
+	lda #30
+	sta n
+	jsr check_bg_collision_add_to_find_next_spot
+	jsr check_bg_collision_update_2006_lda_2007
+	lda #%00000100
+	jsr check_bg_collision_chk_flag
+
+check_bg_collision_lower:
+	lda #1
+	sta n
+	jsr check_bg_collision_add_to_find_next_spot
+	jsr check_bg_collision_update_2006_lda_2007	
+	lda #%00000010
+	jsr check_bg_collision_chk_flag
+
+check_bg_collision_lower_right:
+	lda #1
+	sta n
+	jsr check_bg_collision_add_to_find_next_spot
+	jsr check_bg_collision_update_2006_lda_2007
+	lda #%00000001
+	jsr check_bg_collision_chk_flag
+
+done_check_bg_collision:
+
+	lda nmi_flags
+	and #%11111011 			; Turn bit 2 off (logic)
+	sta nmi_flags
+	
+	lda #0
+	sta $2005
+	lda #255
+	sta $2005
+	lda #$88
+	sta $2000
+	rts
+
+check_bg_collision_update_2006_lda_2007:
+	lda start_collision_high
+	sta $2006
+	lda start_collision_low
+	sta $2006
+
+	; TODO (later): modify for scrolling logic
+
+	
+	; prime read buffer, ignoring result
+	; see: https://www.nesdev.org/wiki/PPU_registers#PPUDATA_-_VRAM_data_($2007_read/write)
+	lda $2007 						
+	lda $2007    					; Checking BG at that spot
+	tax
+	rts
+
+check_bg_collision_chk_flag:
+	cpx #1
+	bne finished_check_bg_collision_chk_flag
+	ora collision_flags
+	sta collision_flags
+finished_check_bg_collision_chk_flag:
+	rts
+
+check_bg_collision_add_to_find_next_spot:
+    lda start_collision_low
+    clc
+    adc n
+    sta start_collision_low
+    lda start_collision_high
+    adc #0
+    sta start_collision_high
+    rts
+
+
 reset:
 	cld
 	sei
