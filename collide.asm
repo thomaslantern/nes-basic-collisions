@@ -200,6 +200,8 @@ check_bg_collision_add_to_find_next_spot:
     sta start_collision_high
     rts
 
+irq:
+	rti
 
 reset:
 	cld
@@ -365,9 +367,6 @@ done_map_loop:
 	lda #0
 	sta player_inner_x
 	sta player_inner_y
-	sta clock_cycle
-	lda #1
-	sta clock_cycle_end
 
 	lda #80  		;not lda #80, that's 80/8 = 10
 	sta player_x
@@ -416,8 +415,6 @@ read_ctrl_loop:
 	bne read_ctrl_loop
 	sta button_array
 
-	lda clock_cycle  			; check that clock_cycle is appropriate (for now we're assuming
-	bne main_loop_end 			; 0 means "you can update x/y positions")
 	lda nmi_flags				; Now we check that we're not already waiting for a gfx update...
 	and #2  
 	bne main_loop_end   		; go to end of loop if bit 1 is turned on....
