@@ -261,21 +261,21 @@ clear_ram:
 	sta $02FE
 
 	; set y-value on screen for debug to 40 (inner)
-	lda #40 
+	lda #$A0 
 	sta $02E0	; high-digit (inner x)
 	sta $02E4	; low-digit
 	sta $02E8	; high-digit (inner y)
 	sta $02EC	; low-digit
 	
 	; set y-value on screen for debug to 48 (x/y)
-	lda #48
+	lda #$A8
 	sta $02F0	; high-digit (x)
 	sta $02F4
 	sta $02F8	; high-digit (y)
 	sta $02FC
 
 	; set y-value on screen for abs val debug to 56 (abs x/y)
-	lda #56	
+	lda #$B0	
 	sta $02D0
 	sta $02D4
 	sta $02D8
@@ -383,7 +383,7 @@ load_sprite:
 	lda sprite_data,x
 	sta $0200,x
 	inx
-	cpx #44
+	cpx #4
 	bne load_sprite
 
 	lda #$02
@@ -419,9 +419,10 @@ read_ctrl_loop:
 	and #2  
 	bne main_loop_end   		; go to end of loop if bit 1 is turned on....
 
-	jsr check_collision
+
 	jsr check_controller
 	jsr update_xy
+	jsr check_collision
 
 main_loop_end:
 	jmp main_loop
@@ -953,19 +954,6 @@ map_data_table_one:
 
 sprite_data:
 	db 16, $10, $01, 80
-
-	db $36, $0, $03, $40 			
-	db $46, $1, $03, $40 			
-	db $56, $2, $03, $40 			
-	db $66, $3, $03, $40 			
-
-	db $76, $4, $03, $40 			
-	db $86, $5, $03, $40 			
-	db $96, $6, $03, $40 			
-	db $A6, $7, $03, $40 			
-
-	db $B6, $8, $03, $40 			
-	db $C6, $9, $03, $40 			
 
 	org $FFFA
 	dw nmi
