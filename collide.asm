@@ -51,8 +51,8 @@ nmi:
 
 	; check last nmi was completed
 	lda nmi_flags
-	and #1 						; check bit 1, did nmi finish?
-	bne finish_nmi  ; if it didn't, get to the end pls
+	and #1 					; check bit 1, did nmi finish?
+	bne finish_nmi  		; if it didn't, get to the end pls
 
 	; we're in an NMI, turn the "NMI" bit on:
 	lda nmi_flags
@@ -241,6 +241,10 @@ clear_ram:
 	inx
 	bne clear_ram
 
+	;; set collision address to $2000 (00 already set in start_collision_low)
+	lda #$20
+	sta start_collision_high
+
 
 	;; DISPLAY CODE: this is where the code starts to initialize
 	;; (place) the sprites used to track the position of the player's
@@ -260,21 +264,18 @@ clear_ram:
 	sta $02F6
 	sta $02FE
 
-	; set y-value on screen for debug to 40 (inner)
 	lda #$A0 
 	sta $02E0	; high-digit (inner x)
 	sta $02E4	; low-digit
 	sta $02E8	; high-digit (inner y)
 	sta $02EC	; low-digit
 	
-	; set y-value on screen for debug to 48 (x/y)
 	lda #$A8
 	sta $02F0	; high-digit (x)
 	sta $02F4
 	sta $02F8	; high-digit (y)
 	sta $02FC
 
-	; set y-value on screen for abs val debug to 56 (abs x/y)
 	lda #$B0	
 	sta $02D0
 	sta $02D4
