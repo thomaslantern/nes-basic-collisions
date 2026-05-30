@@ -264,24 +264,29 @@ clear_ram:
 	sta $02F6
 	sta $02FE
 
+	; set y-value on screen for debug to $A0 (160 pixels down)
 	lda #$A0 
 	sta $02E0	; high-digit (inner x)
 	sta $02E4	; low-digit
 	sta $02E8	; high-digit (inner y)
 	sta $02EC	; low-digit
 	
+	; set y-value on screen for debug to $A8 (168 pixels down)
 	lda #$A8
 	sta $02F0	; high-digit (x)
 	sta $02F4
 	sta $02F8	; high-digit (y)
 	sta $02FC
 
+	; set y-value on screen for debug to $B0 (176 pixels down)
 	lda #$B0	
 	sta $02D0
 	sta $02D4
 	sta $02D8
 	sta $02DC
 
+	; set x-values for two-digit numbers for testing
+	; (See "extracting_tens" function below)
 	; highx lowx highy lowy
 	lda #$60
 	sta $02D3
