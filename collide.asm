@@ -326,7 +326,6 @@ palette_loop:
 	cpx #$20
 	bne palette_loop
 
-
 load_map:
 	lda $2002
 	lda #$20
@@ -421,249 +420,85 @@ read_ctrl_loop:
 	bne read_ctrl_loop
 	sta button_array
 
-	lda nmi_flags				; Now we check that we're not already waiting for a gfx update...
-	and #2  
-	bne main_loop_end   		; go to end of loop if bit 1 is turned on....
+	lda nmi_flags
+	and #%00000100
+	bne main_loop_end
 
-
+	
 	jsr check_controller
 	jsr update_xy
+	jsr update_tiles
 	jsr check_collision
 
 main_loop_end:
 	jmp main_loop
 
 check_collision:
-	lda collision_flags
-	and #%00001111				; turn off collisions to start check
-	sta collision_flags
-	; We need to perform two checks:
-	; Check vertical collision if dy isn't zero
-	; Check horizontal collision if dx isn't zero
-	; I think the trick here is:
-	
-	; start of logic/loop:
-	; 1) subtract abs_y if there is at least one
-	; 2) add 32 to z (register we'll use to keep track)
-	; 3) keep pulling from z2 until we're out of abs_y
+	;TODO: still not sure whether to use this or EOR the DONKY
 
 
-	; 1) Figure out which tile is directly above our hero, zero out dy if moving up
-	ldy #1 					; (We're using y to go through or data table.)
-	ldx player_abs_y 		; (The hilarity of storing y in x is not lost on me.)
-	dex 					; Subtract one because we want the row ABOVE
-							; our player (NOTE: This will break if sprite is in row zero)
-	cpx #0
-	beq done_with_y
+	; This code assumes the screen doesn't scroll;
+	; you would have to compensate for scrolling otherwise.
+	; For now, assume a starting point of $2000 in our nametable:
+	lda #$20
+	sta start_collision_high
+	lda #0
+	sta start_collision_low
 
-	
-find_first_tile:
-	lda #32
-	sta z
-	dex
-get_new_y_value:
-	lda map_data_table_one,y
-	sta z2
-compare_y_with_no_new_load:
-	lda z2
-	cmp z
-	bpl sub_32_from_z2
-	iny
-	iny
-	lda z
+
+	; Start by finding where we are on BG nametable
+	ldy #0
+	lda #0
+	sta z3
+
+	lda player_abs_y
 	sec
-	sbc z2
-	sta z
-	beq find_first_tile
-	cpx #0
-	beq done_with_y
-	jmp get_new_y_value
-sub_32_from_z2:
-	sec
-	sbc z
-	sta z2
-	beq next_y
-	cpx #0
-	beq done_with_y
-	lda #32
-	sta z
-	dex
-	jmp compare_y_with_no_new_load
-next_y:
-	iny
-	iny
-	jmp find_first_tile
+	sbc #1
+	tax
+	beq done_bg_collision_find_y
 
-done_with_y:
-	; now add the x value of our hero to find the tile exactly above...
-	lda player_abs_x
 	clc
-	adc z
-	sta z
-	
-	lda z
+	lda #0
+bg_collision_find_y:
+	adc #32
+	sta z3
+	bcc bg_collision_find_y_dex
+	iny 							; Store number of carries in y
 	clc
-	adc #1 						; add one more due to zero-indexing (but we DON't add 1 to y
-	sta z 						; above because we want the row above our hero)
+bg_collision_find_y_dex:
+	dex
+	bne bg_collision_find_y
+done_bg_collision_find_y:
+
+	; We need to subtract 1 to find our "starting" point for grabbing
+	; the correct nametable address:
+	; X--
+	; -P-
+	; ---
+	; (X marks the spot)
+	dec z3
+
+	; Also, we don't add 1 more than the x offset (yes, there is 
+	; zero-indexing but $2000 is the first spot, so we're "adding and 
+	; subtracting" one, i.e., not doing anything):
+	clc
+	lda z3
+	adc player_abs_x
+	sta z3
 
 
-find_first_tile_loop:
-	lda map_data_table_one,y
-	sta z2
+	lda z3
+	sta start_collision_low  		; LSB for nametable
 
-	lda z
-	sec
-	sbc z2
-	bmi found_tile_minus  		; problematic for values > 127? (after subtracting)
-	sta z
-	lda #0
-	sta z2
-	lda z  				; lda for beq
-	beq found_tile
-	iny
-	iny
-	jmp find_first_tile_loop
-found_tile_minus:
-	lda z2
-	sec
-	sbc z
-	sta z2
-	lda #0
-	sta z
-found_tile:
-	dey 						; Decrease y by one to check what type of tile
-	lda map_data_table_one,y
-	cmp #1
-	bne check_collision_left
-	lda collision_flags
-	ora #%10000000  			; There's a collision above
-	sta collision_flags
-check_collision_left:
-	iny
-	; 2) 31 higher gives to the left, zero out dx if moving left
-	lda #31						
-	sta z
-	sec
-	sbc z2
-	bmi found_left_tile_minus
-	sta z
-	lda #0
-	sta z2
-	lda z
-	beq found_left_tile
-	coll_left_loop:
-		iny
-		iny 						; we had to do it again, jump up an index
-		lda map_data_table_one,y
-		sta z2
-		lda z
-		sec
-		sbc z2		
-		bmi found_left_tile_minus
-		sta z
-		lda #0
-		sta z2
-		lda z
-		beq found_left_tile
-		jmp coll_left_loop
-found_left_tile_minus:
-	lda z2
-	sec
-	sbc z
-	sta z2	
-	lda #0
-	sta z
-found_left_tile:
-	dey 						; Decrease y by one to check what type of tile
-	lda map_data_table_one,y
-	cmp #1
-	bne check_collision_right
-	lda collision_flags
-	ora #%01000000  			; There's a collision above
-	sta collision_flags
-check_collision_right:
-	iny
-	; 3) 2 higher than that gives to the right, zero out dx if moving right
-	lda #2			
-	sta z
-	sec
-	sbc z2
-	bmi found_right_tile_minus
-	sta z
-	lda #0
-	sta z2
-	lda z
-	beq found_right_tile
-	coll_right_loop:
-		iny
-		iny
-		lda map_data_table_one,y
-		sta z2
-		lda z
-		sec
-		sbc z2
-		bmi found_right_tile_minus
-		sta z
-		lda #0
-		sta z2
-		lda z
-		beq found_right_tile		
-		jmp coll_right_loop
-found_right_tile_minus:
-	lda z2
-	sec
-	sbc z
-	sta z2
-	lda #0
-	sta z
-found_right_tile:
-	dey 						; Decrease y by one to check what type of tile
-	lda map_data_table_one,y
-	cmp #1
-	bne check_collision_down
-	lda collision_flags
-	ora #%00100000  			; There's a collision above
-	sta collision_flags
-check_collision_down:
-	iny 
-	; 4) 31 higher gives below, zero out dy if moving down
-	lda #31						
-	sta z
-	sec
-	sbc z2
-	bmi found_down_tile
-	sta z
-	lda #0
-	sta z2
-	lda z
-	beq found_down_tile
-	coll_down_loop:
-		iny
-		iny
-		lda map_data_table_one,y
-		sta z2
-		lda z
-		sec
-		sbc z2
-		bmi found_down_tile
-		sta z
-		lda #0
-		sta z2
-		lda z
-		beq found_down_tile
-		jmp coll_down_loop
-found_down_tile:
-	dey 						; Decrease y by one to check what type of tile
-	lda map_data_table_one,y
-	cmp #1
-	bne done_checking_collision
-	lda collision_flags
-	ora #%00010000  			; There's a collision above
-	sta collision_flags
-	lda #0
-	sta z
-	sta z2
-done_checking_collision:
+	tya
+	clc
+	adc #$20 						; MSB for nametable
+	sta start_collision_high
+
+	lda nmi_flags
+	ora #%00000100					; turn collision flag on
+	sta nmi_flags
+
 	rts
 
 check_controller:
@@ -716,7 +551,348 @@ move_now:
 update_xy:
 	; x coordinate relative to one screen
 	; (zero-indexed) 32x30
+	lda nmi_flags
+	and #%00000010
+	beq continue_update_xy
+	rts
+
+continue_update_xy:
+	; 4 Cases:
+	; 1) player_inner_x and player_inner_y are both non-zero:
+	; For both to be non-zero, the sprite is currently "occupying"
+	; all adjacent tiles, so collisions are not possible
+	; 2) Only player_inner_x is non-zero:
+	; In this case we need only check UD collisions (four tiles in 
+	; total, since sprite is "in-between tiles" horizontally):
+	; [bits: -65---10 I believe?]
+	; 3) Only player_inner_y is non-zero:
+	; Similar to 2), but checking LR collisions (four tiles total)
+	; [bits: ---432-0 I believe?]
+	; 4) player_inner_x and player_inner_y are both zero:
+	; The four collisions we check are exactly one tile each
+	; direction (ULDR)
+	; [bits: 76543210]
+
+	; Note: use of 'rts' throughout function saves time/space
+	; rather than using something like:
+	; lda #0
+	; sta dx
+	; sta dy
+	; ; (and then continuing the function...)
+
+	;; There are 36 cases in total:
+	;; inner_x: zero or non-zero
+	;; inner_y: zero or non-zero
+	;; dx: 1, 0, -1
+	;; dy: 1, 0, -1
+	;; => 2 x 2 x 3 x 3 = 36 cases
+	;; Make sure you catch'em all!!!
+
+	; Easiest cases: dx = dy = 0:
+	; (4 cases, 32 remaining)
+	lda dx
+	bne at_least_one_nonzero_d
+	lda dy
+	bne at_least_one_nonzero_d
+	rts
+
+at_least_one_nonzero_d:
+
+	; Next easiest cases: player_inner_x = player_inner_y != 0
+	; (4 cases, 28 remaining)
+	lda player_inner_x
+	beq at_least_one_inner_zero
+	lda player_inner_y
+	beq at_least_one_inner_zero
+	; Don't need collisions while you're "in between" blocks:
+	jmp add_dx_dy
+
 	
+at_least_one_inner_zero:
+
+update_xy_check_bit_7:
+	; 33) dx: -1, dy: -1, inner_x: 0, inner_y: 0
+	
+	lda collision_flags
+	and #%10000000
+	beq update_xy_check_bit_6
+	lda player_inner_y
+	bne update_xy_check_bit_6
+	lda player_inner_x
+	bne update_xy_check_bit_6
+	lda dx
+	bpl update_xy_check_bit_6
+	lda dy
+	bpl update_xy_check_bit_6
+	lda collision_flags
+	and #%00010000
+	bne update_xy_check_bit_7_zero_dx
+	lda collision_flags
+	and #%01000000
+	bne update_xy_check_bit_7_zero_dy
+	rts
+update_xy_check_bit_7_zero_dx:
+	lda #0
+	sta dx
+	jmp update_xy_check_bit_6
+update_xy_check_bit_7_zero_dy:
+	lda #0
+	sta dy
+
+update_xy_check_bit_6:
+	; bit 6 can be reached in 6 cases:
+	; 9) dx: 0, dy: -1, inner_x: 0, inner_y: 0
+	; 11) dx: 0, dy: -1, inner_x: 1, inner_y: 0
+	; 21) dx: 1, dy: -1, inner_x: 0, inner_y: 0
+	; 23) dx: 1, dy: -1, inner_x: 1, inner_y: 0
+	; 33) dx: -1, dy: -1, inner_x: 0, inner_y: 0
+	; 35) dx: -1, dy: -1, inner_x: 1, inner_y: 0
+	lda collision_flags
+	and #%01000000
+	beq update_xy_check_bit_5
+	lda player_inner_y
+	bne update_xy_check_bit_5
+	lda dy
+	bpl update_xy_check_bit_5
+	lda #0
+	sta dy
+
+update_xy_check_bit_5:
+	; 11) dx: 0, dy: -1, inner_x: 1, inner_y: 0
+	; 21) dx: 1, dy: -1, inner_x: 0, inner_y: 0
+	; 23) dx: 1, dy: -1, inner_x: 1, inner_y: 0
+	; 35) dx: -1, dy: -1, inner_x: 1, inner_y: 0
+
+	lda collision_flags
+	and #%00100000
+	beq update_xy_check_bit_4
+	lda dx
+	bmi update_xy_check_bit_5_case_35
+	lda dy 
+	bpl update_xy_check_bit_4
+	lda player_inner_y
+	bne update_xy_check_bit_4
+
+	; dx != -1, dy = -1, inner_y = 0
+	lda dx
+	bne update_xy_check_bit_5_cases_21_23
+update_xy_check_bit_5_case_11:
+	lda player_inner_x
+	beq update_xy_check_bit_4
+	; dx = 0, we're moving up and there's a block there
+	rts
+update_xy_check_bit_5_case_35:
+	lda dy
+	bpl update_xy_check_bit_4
+	lda player_inner_y
+	bne update_xy_check_bit_4
+	lda player_inner_x
+	beq update_xy_check_bit_4
+	lda #0
+	sta dy
+	jmp update_xy_check_bit_4
+update_xy_check_bit_5_cases_21_23:
+	; dx = 1, dy = -1, inner_y = 0
+	; We're moving up-right and there's a block there
+	lda #0
+	sta dx
+	lda player_inner_x
+	beq update_xy_check_bit_4
+	lda #0
+	sta dy
+
+update_xy_check_bit_4:
+	; 25) dx: -1, dy: 0, inner_x: 0, inner_y: 0
+	; 26) dx: -1, dy: 0, inner_x: 0, inner_y: 1
+	; 29) dx: -1, dy: 1, inner_x: 0, inner_y: 0
+	; 30) dx: -1, dy: 1, inner_x: 0, inner_y: 1
+	; 33) dx: -1, dy: -1, inner_x: 0, inner_y: 0
+	; 34) dx: -1, dy: -1, inner_x: 0, inner_y: 1
+
+	lda collision_flags
+	and #%00010000
+	beq update_xy_check_bit_3
+	lda dx
+	bpl update_xy_check_bit_3
+	lda player_inner_x
+	bne update_xy_check_bit_3
+	lda #0
+	sta dx
+
+update_xy_check_bit_3:
+	; 13) dx: 1, dy: 0, inner_x: 0, inner_y: 0
+	; 14) dx: 1, dy: 0, inner_x: 0, inner_y: 1
+	; 17) dx: 1, dy: 1, inner_x: 0, inner_y: 0
+	; 18) dx: 1, dy: 1, inner_x: 0, inner_y: 1
+	; 21) dx: 1, dy: -1, inner_x: 0, inner_y: 0
+	; 22) dx: 1, dy: -1, inner_x: 0, inner_y: 1
+	; 35) dx: -1, dy: -1, inner_x: 1, inner_y: 0
+		
+	lda collision_flags
+	and #%00001000
+	beq update_xy_check_bit_2
+	lda dx
+	bmi update_xy_check_bit_3_case_35
+	lda player_inner_x
+	bne update_xy_check_bit_2
+	beq update_xy_check_bit_3_zero_dx
+update_xy_check_bit_3_case_35:
+	lda dx
+	bpl update_xy_check_bit_2
+	lda player_inner_x
+	beq update_xy_check_bit_2
+	lda player_inner_y
+	bne update_xy_check_bit_2
+	lda #0
+	sta dy
+
+update_xy_check_bit_3_zero_dx:
+	lda #0
+	sta dx
+
+update_xy_check_bit_2:
+	; 26) dx: -1, dy: 0, inner_x: 0, inner_y: 1
+	; 29) dx: -1, dy: 1, inner_x: 0, inner_y: 0
+	; 30) dx: -1, dy: 1, inner_x: 0, inner_y: 1
+	; 34) dx: -1, dy: -1, inner_x: 0, inner_y: 1
+
+	lda collision_flags
+	and #%00000100
+	beq update_xy_check_bit_1
+
+	lda dx
+	bpl update_xy_check_bit_1
+	lda player_inner_x
+	bne update_xy_check_bit_1
+	lda dy
+	bne update_xy_check_bit_2_cases_29_30_34
+update_xy_check_bit_2_case_26:	
+	lda player_inner_y
+	beq update_xy_check_bit_1
+	lda #0
+	sta dx
+	jmp update_xy_check_bit_1
+
+update_xy_check_bit_2_cases_29_30_34:
+	lda dy
+	bpl update_xy_check_bit_2_cases_29_30
+	lda player_inner_y
+	beq update_xy_check_bit_1
+	lda #0
+	sta dx
+	jmp	update_xy_check_bit_1
+update_xy_check_bit_2_cases_29_30:
+	lda player_inner_y
+	beq update_xy_check_bit_2_zero_dx_dy
+update_xy_check_bit_2_case_30:
+	lda #0
+	sta dx
+	jmp update_xy_check_bit_1
+update_xy_check_bit_2_zero_dx_dy:
+	lda #0
+	sta dy
+	
+update_xy_check_bit_1:
+	; 5) dx: 0, dy: 1, inner_x: 0, inner_y: 0
+	; 7) dx: 0, dy: 1, inner_x: 1, inner_y: 0
+	; 17) dx: 1, dy: 1, inner_x: 0, inner_y: 0
+	; 19) dx: 1, dy: 1, inner_x: 1, inner_y: 0
+	; 29) dx: -1, dy: 1, inner_x: 0, inner_y: 0
+	; 31) dx: -1, dy: 1, inner_x: 1, inner_y: 0
+	lda collision_flags
+	and #%00000010
+	beq update_xy_check_bit_0
+
+	lda dy
+	beq update_xy_check_bit_0
+	bmi update_xy_check_bit_0
+	lda player_inner_y
+	bne update_xy_check_bit_0
+	lda #0
+	sta dy
+	
+update_xy_check_bit_0:
+	; 7) dx: 0, dy: 1, inner_x: 1, inner_y: 0
+	; 14) dx: 1, dy: 0, inner_x: 0, inner_y: 1
+	; 17) dx: 1, dy: 1, inner_x: 0, inner_y: 0
+	; 18) dx: 1, dy: 1, inner_x: 0, inner_y: 1
+	; 19) dx: 1, dy: 1, inner_x: 1, inner_y: 0
+	; 22) dx: 1, dy: -1, inner_x: 0, inner_y: 1
+	; 31) dx: -1, dy: 1, inner_x: 1, inner_y: 0
+	
+	lda collision_flags
+	and #%00000001
+	beq add_dx_dy
+
+	lda dx
+	bmi update_xy_check_bit_0_case_31
+	beq update_xy_check_bit_0_case_7
+	; dx = 1; check cases 14, 17, 19, and 22:
+	lda dy
+	bmi update_xy_check_bit_0_case_22
+	beq update_xy_check_case_14
+	; dy = 1, check cases 17, 18, 19:
+update_xy_check_cases_17_19:
+	lda player_inner_y
+	beq update_xy_check_bit_0_clear_dx_dy
+	; inner_y = 1
+	lda player_inner_x
+	bne add_dx_dy
+	lda #0
+	sta dx
+	jmp add_dx_dy
+	
+
+update_xy_check_case_14:
+	; dy = 0
+	lda player_inner_x
+	bne add_dx_dy
+	lda player_inner_y
+	bne update_xy_check_bit_0_clear_dx_dy
+	beq add_dx_dy
+
+update_xy_check_bit_0_case_22:
+	; dx = 1, dy = -1
+	; 22) dx: 1, dy: -1, inner_x: 0, inner_y: 1
+	lda player_inner_x
+	bne add_dx_dy
+	lda player_inner_y
+	lda #0
+	sta dx
+
+
+update_xy_check_bit_0_case_7:
+	; dx = 0, check case 7:
+	lda dy
+	beq add_dx_dy
+	bmi add_dx_dy
+	lda player_inner_x
+	beq add_dx_dy
+	lda player_inner_y
+	bne add_dx_dy
+	beq update_xy_check_bit_0_clear_dx_dy
+
+update_xy_check_bit_0_case_31:
+	; dx = -1
+	; 31) dx: -1, dy: 1, inner_x: 1, inner_y: 0
+	lda dy
+	beq add_dx_dy
+	bmi add_dx_dy
+	lda player_inner_x
+	beq add_dx_dy
+	lda player_inner_y
+	bne add_dx_dy
+
+update_xy_check_bit_0_clear_dx_dy:
+	lda #0
+	
+	sta dy
+	lda player_inner_x
+	bne add_dx_dy
+	lda #0
+	sta dx
+
+add_dx_dy:
 	lda player_x
 	clc
 	adc dx
@@ -726,40 +902,16 @@ update_xy:
 	clc
 	adc dx
 	sta player_inner_x
-
-	;; check if adjacent direction is wall;
-	;; if it is, we don't move!
-	cmp #1
-	beq check_wall_right
 	
 	; check if > 7 (new abs_x)
 	cmp #8
 	beq change_abs_x
 
+	; check if < 0 (new_abs_x)
 	cmp #255
-	;; check if adjacent direction is wall;
-	;; if it is, we don't move!
-	beq check_wall_left
-	jmp done_inner_x
-
-check_wall_left:
-	lda collision_flags
-	and #%01000000
-	
 	beq change_abs_x
-	inc player_x
-	inc player_inner_x
-	inc dx
 	jmp done_inner_x
 
-check_wall_right:
-	lda collision_flags
-	and #%00100000
-	beq done_inner_x
-	dec player_x
-	dec player_inner_x
-	dec dx 
-	jmp done_inner_x
 change_abs_x:
 	; player_inner_x is -1 or 8, reset it by doing lsr 5 times:
 	;  8 = 00001000 => 00000100 => 00000010 => 00000001 => 00000000 => 00000000
@@ -770,7 +922,6 @@ change_abs_x:
 	lsr player_inner_x
 	lsr player_inner_x
 	
-
 	lda player_abs_x
 	clc
 	adc dx
@@ -788,38 +939,13 @@ start_y:
 	clc
 	adc dy
 	sta player_inner_y
-	
-	; check if > 7 (new abs_y)
-	cmp #1
-	;; check if adjacent direction is wall;
-	;; if it is, we don't move!
-	beq check_wall_down
+		
 
 	cmp #8
 	beq change_abs_y
 
 	cmp #255
-	;; check if adjacent direction is wall;
-	;; if it is, we don't move!
-	beq check_wall_up
-	jmp done_inner_y
-
-check_wall_up:
-	lda collision_flags
-	and #%10000000
 	beq change_abs_y
-	inc player_y
-	inc player_inner_y
-	inc dy
-	jmp done_inner_y
-
-check_wall_down:
-	lda collision_flags
-	and #%00010000
-	beq done_inner_y
-	dec player_y
-	dec player_inner_y
-	dec dy 
 	jmp done_inner_y
 	
 change_abs_y:
@@ -836,7 +962,10 @@ change_abs_y:
 	clc
 	adc dy
 	sta player_abs_y
+
 done_inner_y:
+
+	rts
 update_tiles:
 
 	;; TO DO DEL PLACEHOLDERS
@@ -858,14 +987,12 @@ update_tiles:
 
 	;lda player_inner_x
 	;lda dx 			; test dx if you want :)
-	;lda clock_cycle
 	lda collision_flags
 	ldy #$E1
 	jsr extracting_tens
 	lda #0
 	lda player_inner_y
 	;lda dy  		; test dy if you want :)
-	;lda clock_cycle_end
 	;lda z3
 	ldy #$E9
 	jsr extracting_tens
