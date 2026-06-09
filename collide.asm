@@ -985,17 +985,23 @@ update_tiles:
 	ldy #$D9
 	jsr extracting_tens
 
-	;lda player_inner_x
-	;lda dx 			; test dx if you want :)
 	lda collision_flags
 	ldy #$E1
 	jsr extracting_tens
-	lda #0
+
+
+	;; TO DO: explain this or delete this
+	lda collision_flags
+	and #0
+	sta collision_flags
+
 	lda player_inner_y
 	;lda dy  		; test dy if you want :)
 	;lda z3
 	ldy #$E9
 	jsr extracting_tens
+
+
 	lda player_x
 	ldy #$F1
 	jsr extracting_tens

@@ -1,6 +1,9 @@
 ### Basic Collisions on the NES ###
 ### (or "How I learned to love banging my head against a brick wall") ###
 
+### Update: June 08, 2026 ###
+The code seems to be functioning as intended. I'm working on some refactoring and rewriting this README, so it's more "tutorial friendly" - I should be adding appropriate comments to the code as well. For now, give it a try and see what you think!
+
 ### Update: May 23, 2026 ###
 The code is almost functional as it is, so feel free to try it out if you want. You'll notice some collisions don't quite work - this will be fixed shortly, followed by refactors to clean up the code in general. Then these updates will disappear and a proper readme will remain :)
 
