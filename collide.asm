@@ -24,15 +24,14 @@ n equ $EF 						; NMI-only "register"
 nmi_flags equ $F0 				; keeping track of whether waiting/ready (1 yes, 0 no):
 								; -----LVN (L-Logic, V-video, N-NMI)
 
-; Flags for collision_flags: 
-; 765
-; 4X3 <-- X - YOU ARE HERE
-; 210
-collision_flags equ $F1 		
+
+collision_flags equ $F1 		; Flags for collision_flags: 
+								; 765
+								; 4X3 <-- X = YOU ARE HERE
+								; 210
 
 start_collision_high equ $F2 	; MSB for collision logic (player_abs_y - 1)
 start_collision_low equ $F3		; Storage for LSB for collision logic (player_abs_y - 1)
-
 
 ;; REGISTERS ;;
 z3 equ $FD
@@ -87,7 +86,10 @@ finish_nmi:
 	pla
 	rti
 
-; Subroutine for checking collisions against BG
+; NMI Subroutine for checking collisions against BG.
+; Makes use of start_collision_high/low, which is
+; the nametable address of the (x, y) coordinate
+; that is up-and-to-the-left (diagonal) to your sprite.
 check_bg_collision_in_nmi:
 
 check_bg_collision_upper_left:
@@ -118,7 +120,6 @@ check_bg_collision_left:
 	jsr check_bg_collision_update_2006_lda_2007
 	lda #%00010000
 	jsr check_bg_collision_chk_flag
-
 
 check_bg_collision_right:
 	lda #2
@@ -152,6 +153,7 @@ check_bg_collision_lower_right:
 	lda #%00000001
 	jsr check_bg_collision_chk_flag
 
+; sub(sub?)routines in NMI for check_bg_collision
 done_check_bg_collision:
 
 	lda nmi_flags
@@ -223,6 +225,8 @@ wait_vblank:
 	bit $2002
 	bpl wait_vblank
 
+
+	;; TODO NUXT: continue commenting/refactoring from here!
 	
 	; x is already 0
 clear_ram:
@@ -991,6 +995,7 @@ update_tiles:
 
 
 	;; TO DO: explain this or delete this
+	;; SHouldn't this just be lda#0 sta flag????
 	lda collision_flags
 	and #0
 	sta collision_flags
