@@ -370,23 +370,20 @@ done_map_loop:
 	lda #255
 	sta $2005
 
-	; TODO:
-	; store magic numbers for player
-	; position for proof of concept
 	lda #0
 	sta player_inner_x
 	sta player_inner_y
 
-	lda #80  		;not lda #80, that's 80/8 = 10
+	lda #80  		; places character at 11th horizontal tile
 	sta player_x
-	lda #16			;not #16, that's 16/8 = 2
+	lda #16			; places character at 3rd vertical tile
 	sta player_y
-	lda #10
+	lda #10 		
 	sta player_abs_x
 	lda #2
 	sta player_abs_y
 
-	;; SPRITE LOGIC - BEGIN ;;
+	;; SPRITE LOGIC BEGIN: ;;
 	ldx #0
 load_sprite:
 	lda sprite_data,x
