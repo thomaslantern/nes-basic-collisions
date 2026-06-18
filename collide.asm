@@ -329,15 +329,15 @@ palette_loop:
 
 
 ; load_map loads the background onto the screen.
+; Assumes the map data is in the format:
+; tile, tile count, tile, tile_count, etc....
 ; Note that this loop does not function as intended
 ; if the second value found in "map_data_table_one"
 ; is zero, i.e. implying there are "zero" of the first
 ; tile in the map data. 
-; The loop quits when there are two entries of 255 ($FF)
+; The loop quits when it finds a "tile count" of 255 ($FF)
 ; at the end, so bear that in mind if your intent was
-; to make a map with 255 tiles of your last background
-; tile.
-
+; to complete your map with 255 of the same tile.
 load_map:
 	lda $2002
 	lda #$20
@@ -346,18 +346,18 @@ load_map:
 	sta $2006
 	
 	ldx #1
-	lda map_data_table_one,x
-	tay
-	dex
+	lda map_data_table_one,x 		; Get the first tile count,
+	tay 							; transfer it to y, then
+	dex 							; reset x to start of table
 map_load_loop:
 	lda map_data_table_one,x
 inner_map_loop:
-	sta $2007 			; write one tile
-	dey					; decrease y-count cause we've done one...
-	cpy #0
+	sta $2007 						; write one tile
+	dey								; decrease y-count per tile placed
+	cpy #0  						; stop placing this tile when y = 0
 	bne inner_map_loop
-	inx
-	inx
+	inx 							; we inx 3 times because we need to 
+	inx 							; dig up the next "tile count"
 	inx
 	lda map_data_table_one,x ; load value two-higher
 	tay
