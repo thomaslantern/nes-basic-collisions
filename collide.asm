@@ -226,8 +226,6 @@ wait_vblank:
 	bpl wait_vblank
 
 
-	;; TODO NUXT: continue commenting/refactoring from here!
-	
 	; x is already 0
 clear_ram:
 	lda #0
@@ -245,7 +243,8 @@ clear_ram:
 	inx
 	bne clear_ram
 
-	;; set collision address to $2000 (00 already set in start_collision_low)
+	; set collision address to $2000 
+	; (00 already set in start_collision_low)
 	lda #$20
 	sta start_collision_high
 
@@ -310,11 +309,9 @@ clear_ram:
 	sta $02FF
 	;; END DISPLAY CODE
 
-
 wait_vblank_2:
 	bit $2002
 	bpl wait_vblank_2
-
 
 load_palete:
 	lda $2002
@@ -330,19 +327,23 @@ palette_loop:
 	cpx #$20
 	bne palette_loop
 
+
+; load_map loads the background onto the screen.
+; Note that this loop does not function as intended
+; if the second value found in "map_data_table_one"
+; is zero, i.e. implying there are "zero" of the first
+; tile in the map data. 
+; The loop quits when there are two entries of 255 ($FF)
+; at the end, so bear that in mind if your intent was
+; to make a map with 255 tiles of your last background
+; tile.
+
 load_map:
 	lda $2002
 	lda #$20
 	sta $2006
 	lda #$00
 	sta $2006
-
-	; NOTE: This loop breaks if the second table
-	; value is zero, i.e. there are "zero" tiles
-	; of the first tile!
-	; SECOND NOTE: Using two entries of 255 ($FF) 
-	; to indicate the end of table data, so we 
-	; know when to kill the loop.
 	
 	ldx #1
 	lda map_data_table_one,x
