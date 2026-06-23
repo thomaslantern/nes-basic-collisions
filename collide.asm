@@ -359,17 +359,18 @@ inner_map_loop:
 	inx 							; we inx 3 times because we need to 
 	inx 							; dig up the next "tile count"
 	inx
-	lda map_data_table_one,x ; load value two-higher
+
+	lda map_data_table_one,x 		; load tile count value two-higher
 	tay
-	cpy #255			; last two values assumed to be 255,255
-	beq done_map_loop	; so if we hit that, we're done
-	dex					; at any rate, y is loaded properly...
-	jmp map_load_loop	; so let's start the loop over again
+	cpy #255						; last two values assumed to be 255,255
+	beq done_map_loop				; so if we hit that, we're done
+	dex								; at any rate, y is loaded properly...
+	jmp map_load_loop				; so let's start the loop over again
 done_map_loop:
 	lda #0
-	sta $2005			; reset the scrolling
+	sta $2005						; reset x-scroll
 	lda #255
-	sta $2005
+	sta $2005						; reset y-scroll
 
 	lda #0
 	sta player_inner_x
