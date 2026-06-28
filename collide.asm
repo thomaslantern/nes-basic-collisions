@@ -162,7 +162,6 @@ done_check_bg_collision:
 	
 	lda #0
 	sta $2005
-	lda #255
 	sta $2005
 	lda #$88
 	sta $2000
@@ -369,8 +368,9 @@ inner_map_loop:
 done_map_loop:
 	lda #0
 	sta $2005						; reset x-scroll
-	lda #255
 	sta $2005						; reset y-scroll
+
+	;; NUXT: explain scrolling reset above maybe??? not sure...
 
 	lda #0
 	sta player_inner_x
@@ -378,7 +378,7 @@ done_map_loop:
 
 	lda #80  		; places character at 11th horizontal tile
 	sta player_x
-	lda #16			; places character at 3rd vertical tile
+	lda #15			; places character at 3rd vertical tile (-1 for scanline delay)
 	sta player_y
 	lda #10 		
 	sta player_abs_x
