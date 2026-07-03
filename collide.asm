@@ -89,71 +89,71 @@ finish_nmi:
 ; NMI Subroutine for checking collisions against BG.
 ; Makes use of start_collision_high/low, which is
 ; the nametable address of the (x, y) coordinate
-; that is up-and-to-the-left (diagonal) to your sprite.
+; that (when this subroutine starts) is 
+; up-and-to-the-left (diagonal) to your sprite.
+; (Its position shifts as the subroutine progresses.)
 check_bg_collision_in_nmi:
 
 check_bg_collision_upper_left:
-	jsr check_bg_collision_update_2006_lda_2007
+	jsr check_bg_collision_read_next_bg_block
 	lda #%10000000
 	jsr check_bg_collision_chk_flag
 
 check_bg_collision_upper:
 	lda #1
 	sta n
-	jsr check_bg_collision_add_to_find_next_spot
-	jsr check_bg_collision_update_2006_lda_2007
+	jsr check_bg_collision_modify_start_collision
+	jsr check_bg_collision_read_next_bg_block
 	lda #%01000000
 	jsr check_bg_collision_chk_flag
 
 check_bg_collision_upper_right:
 	lda #1
 	sta n
-	jsr check_bg_collision_add_to_find_next_spot
-	jsr check_bg_collision_update_2006_lda_2007
+	jsr check_bg_collision_modify_start_collision
+	jsr check_bg_collision_read_next_bg_block
 	lda #%00100000
 	jsr check_bg_collision_chk_flag
 
 check_bg_collision_left:
 	lda #30
 	sta n
-	jsr check_bg_collision_add_to_find_next_spot
-	jsr check_bg_collision_update_2006_lda_2007
+	jsr check_bg_collision_modify_start_collision
+	jsr check_bg_collision_read_next_bg_block
 	lda #%00010000
 	jsr check_bg_collision_chk_flag
 
 check_bg_collision_right:
 	lda #2
 	sta n
-	jsr check_bg_collision_add_to_find_next_spot
-	jsr check_bg_collision_update_2006_lda_2007
+	jsr check_bg_collision_modify_start_collision
+	jsr check_bg_collision_read_next_bg_block
 	lda #%00001000
 	jsr check_bg_collision_chk_flag
 
 check_bg_collision_lower_left:
 	lda #30
 	sta n
-	jsr check_bg_collision_add_to_find_next_spot
-	jsr check_bg_collision_update_2006_lda_2007
+	jsr check_bg_collision_modify_start_collision
+	jsr check_bg_collision_read_next_bg_block
 	lda #%00000100
 	jsr check_bg_collision_chk_flag
 
 check_bg_collision_lower:
 	lda #1
 	sta n
-	jsr check_bg_collision_add_to_find_next_spot
-	jsr check_bg_collision_update_2006_lda_2007	
+	jsr check_bg_collision_modify_start_collision
+	jsr check_bg_collision_read_next_bg_block	
 	lda #%00000010
 	jsr check_bg_collision_chk_flag
 
 check_bg_collision_lower_right:
 	lda #1
 	sta n
-	jsr check_bg_collision_add_to_find_next_spot
-	jsr check_bg_collision_update_2006_lda_2007
+	jsr check_bg_collision_modify_start_collision
+	jsr check_bg_collision_read_next_bg_block
 	lda #%00000001
 	jsr check_bg_collision_chk_flag
-
-; sub(sub?)routines in NMI for check_bg_collision
 done_check_bg_collision:
 
 	lda nmi_flags
@@ -167,14 +167,18 @@ done_check_bg_collision:
 	sta $2000
 	rts
 
-check_bg_collision_update_2006_lda_2007:
+; sub(sub?)routine in NMI for updating
+; start_collision_high and start_collision_low.
+; Note that this code would potentially not work 
+; correctly if we used scrolling, since that would 
+; affect the location of bricks relative to the
+; current nametable address, but as we aren't
+; scrolling in this program, it's fine.
+check_bg_collision_read_next_bg_block:
 	lda start_collision_high
 	sta $2006
 	lda start_collision_low
 	sta $2006
-
-	; TODO (later): modify for scrolling logic
-
 	
 	; prime read buffer, ignoring result
 	; see: https://www.nesdev.org/wiki/PPU_registers#PPUDATA_-_VRAM_data_($2007_read/write)
@@ -183,15 +187,19 @@ check_bg_collision_update_2006_lda_2007:
 	tax
 	rts
 
+; sub(sub)routine for checking if
+; the tile in question is a brick (tile = 1)
 check_bg_collision_chk_flag:
-	cpx #1
-	bne finished_check_bg_collision_chk_flag
-	ora collision_flags
-	sta collision_flags
+	cpx #1 										; Tile #1 is a brick (red block)
+	bne finished_check_bg_collision_chk_flag	; Did we see a brick?
+	ora collision_flags 						; If so, use "ora" to add new
+	sta collision_flags 						; collision flag
 finished_check_bg_collision_chk_flag:
 	rts
 
-check_bg_collision_add_to_find_next_spot:
+; sub(sub)routine to find new spot
+; in nametable to check for collisions
+check_bg_collision_modify_start_collision:
     lda start_collision_low
     clc
     adc n
@@ -248,9 +256,9 @@ clear_ram:
 	sta start_collision_high
 
 
-	;; DISPLAY CODE: this is where the code starts to initialize
-	;; (place) the sprites used to track the position of the player's
-	;; sprite. 
+	;; DISPLAY CODE: this is where the code starts 
+	; to initialize (i.e. place) the sprites used 
+	; to track the position of the player's sprite. 
 
 	lda #0
 	sta $02D2
@@ -388,7 +396,7 @@ done_map_loop:
 	;; SPRITE LOGIC BEGIN: ;;
 	ldx #0
 load_sprite:
-	lda sprite_data,x
+	lda sprite_data,x   	
 	sta $0200,x
 	inx
 	cpx #4
@@ -1096,7 +1104,7 @@ map_data_table_one:
 
 
 sprite_data:
-	db 16, $10, $01, 80
+	db 16, $10, $01, 80          ; y-position, tile #, attrib #, x-position
 
 	org $FFFA
 	dw nmi
@@ -1308,5 +1316,3 @@ sprite_start:
 
 sprite_end:
 	ds 4096 - (sprite_end - sprite_start)	; Ensure correct size of sprite tiles (4096 bytes)
-
-
