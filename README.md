@@ -27,6 +27,7 @@ There are a number of changes to our NMI, if you compare the code to Birthday Bl
 
 1) Adding txa, tya, and extra pha commands: Our first major difference is the following:
 
+
 >	pha
 >		php
 >			txa
