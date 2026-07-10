@@ -38,7 +38,7 @@ Instead of just using pha and php, we're now using txa and tya, and a adding sev
 
 Hilariously enough, when I first wrote this code, I forgot to add this in, and couldn't figure out why my code wasn't working properly. I would say it's a "best practice" to include this at the beginning of your NMI, and to include the following at the end of your NMI (to retrieve your values):
 
-> 			pla
+>			pla
 >			tay
 >			pla
 >			tax
