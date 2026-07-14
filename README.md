@@ -36,9 +36,9 @@ There are a number of changes to our NMI, if you compare the code to Birthday Bl
 			pha
 ```
 
-Instead of just using pha and php, we're now using txa and tya, and a adding several more pha commands. What gives? Well, this is the basic way to push all of your flags and registers to the stack, so that you can retrieve them when you're done with the screen update (nmi). Without doing this, you run the risk of having your values in registers x, y, and a being overwritten (similar for the flags). The NMI updates the screen (assuming the screen is on) about sixty times a second (!), so it is inevitable that the NMI will occur at some point while you're in the middle of a function. If you don't back up your values, you're going to lose them, and that could spell disaster for whatever function you were running.
+Instead of just using pha and php, we're now using txa and tya, and a adding several more pha commands. What gives? Well, this is the basic way to push all of your flags and registers to the stack, so that you can retrieve them when you're done with the screen update (NMI). Without doing this, you run the risk of having your a-, x-, and y-registers get overwritten. The same is true for the flags. Assuming the screen is on, the NMI updates the screen about sixty times a second (about fifty times for the PAL NES), so it is inevitable that the NMI will occur at some point while your code is in the middle of a function. If you don't back up your values, you're going to lose them, and that could spell disaster for whatever function was running.
 
-Hilariously enough, when I first wrote this code, I forgot to add this in, and couldn't figure out why my code wasn't working properly. I would say it's a "best practice" to include this at the beginning of your NMI, and to include the following at the end of your NMI (to retrieve your values):
+Hilariously enough, when I first wrote this code, I forgot to add this in, and couldn't figure out why my code wasn't working properly. Make it a "best practice" to include the above code at the beginning of your NMI, and to include the following at the end of your NMI (to retrieve your values):
 
 ```asm6502
 			pla
@@ -50,4 +50,13 @@ Hilariously enough, when I first wrote this code, I forgot to add this in, and c
 	rti
 ```
 
-Notice how the pla and plp commands are sort of "backward" to how we stored everything on the stack at the beginning? That's because our stack is LIFO, or last-in-first-out.
+Notice how the pla and plp commands are sort of "backward" to how we stored everything on the stack at the beginning? That's because our stack is LIFO, or last-in-first-out. At the start of our NMI we pushed our accumulator onto the stack (PHA). Then all of our flags (PHP). We then transferred our x-register's value to the accumulator, and pushed that using PHA (there is no "PHX" or anything like that in ASM6502 code). Similarly, we pushed y to a and used PHA again to put Y on the stack. So our stack would look like this:
+
+```asm6502
+former Y-register value
+former X-register value
+former processor flags value
+former accumulator value
+```
+
+At the end of our NMI, after doing everything we need to do while the screen is off, we use PLA to grab our old Y-value, then TAY to put it back into Y; we do the same for our old X-value using PLA and TAX. That only leaves PLP to grab our old flags, and PLA to finally grab our accumulator.
