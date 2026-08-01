@@ -25,7 +25,7 @@ The problem with the code in Birthday Blast (and it was _definitely_ the only is
 
 There are a number of changes to our NMI, if you compare the code to Birthday Blast. I'll address each of them in order:
 
-1) Adding txa, tya, and extra pha commands: Our first major difference is the following:
+*1) Adding txa, tya, and extra pha commands:* Our first major difference is the following:
 
 ```asm6502
 	pha
@@ -50,13 +50,15 @@ Hilariously enough, when I first wrote this code, I forgot to add this in, and c
 	rti
 ```
 
-Notice how the pla and plp commands are sort of "backward" to how we stored everything on the stack at the beginning? That's because our stack is LIFO, or last-in-first-out. At the start of our NMI we pushed our accumulator onto the stack (PHA). Then all of our flags (PHP). We then transferred our x-register's value to the accumulator, and pushed that using PHA (there is no "PHX" or anything like that in ASM6502 code). Similarly, we pushed y to a and used PHA again to put Y on the stack. So our stack would look like this:
+Notice how the pla and plp commands are sort of "backward" to how we stored everything on the stack at the beginning? That's because our stack is LIFO, or last-in-first-out. At the start of our NMI we pushed our accumulator onto the stack (PHA). Then we pushed all of our flags (PHP). After that, we transferred our x-register's value to the accumulator, and pushed that using PHA (there is no "PHX" or anything like that in ASM6502 code). Similarly, we pushed y to a and used PHA again to put Y on the stack. So our stack would look like this:
 
 ```asm6502
-former Y-register value
-former X-register value
-former processor flags value
+former Y-register value (top of stack, which we will get first if we "pull" from the stack)
+former X-register value (second highest, we get it second)
+former processor flags value (etc...)
 former accumulator value
 ```
 
 At the end of our NMI, after doing everything we need to do while the screen is off, we use PLA to grab our old Y-value, then TAY to put it back into Y; we do the same for our old X-value using PLA and TAX. That only leaves PLP to grab our old flags, and PLA to finally grab our accumulator.
+
+*2) No playerpos variable in NMI, and call to $4014 occurs later:* Another big change is that any updates to the player's position is handled _outside_ of the NMI. One major reason for this is that "non-NMI" processing time is greater than NMI time (I've read that the NES is in the NMI/vblank state for only about 8% of the time), so any logic that can be handled outside of updating the screen should probably be done outside of NMI.
