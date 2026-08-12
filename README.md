@@ -62,3 +62,11 @@ former accumulator value
 At the end of our NMI, after doing everything we need to do while the screen is off, we use PLA to grab our old Y-value, then TAY to put it back into Y; we do the same for our old X-value using PLA and TAX. That only leaves PLP to grab our old flags, and PLA to finally grab our accumulator.
 
 *2) No playerpos variable in NMI, and call to $4014 occurs later:* Another big change is that any updates to the player's position is handled _outside_ of the NMI. One major reason for this is that "non-NMI" processing time is greater than NMI time (I've read that the NES is in the NMI/vblank state for only about 8% of the time), so any logic that can be handled outside of updating the screen should probably be done outside of NMI.
+
+In case you're wondering - having too much in my NMI was the _second_ major error in my code that led to many headaches. I've heard that some games put all of their logic inside of their NMI (I believe Konami may have done this), but that's not what I did here, and I found doing it this way was much easier.
+
+*3) No music code:* All of my code in _Birthday Blast_ that involved music is not here. I didn't feel there was any need for music in this particular tutorial, but if you disagree, let that be an intellectual exercise for the reader!
+
+*4) Code involving _nmi_flags_:* Something I felt the need to implement here was a set of flags that determined where you left off in your last game loop. Did you capture the controller inputs? Was the movement logic (outside of NMI) completed before going to NMI? The basic premise here was that, if something didn't complete during the game loop, it was skipped during NMI.
+
+_(My next update will go into more detail about these flags, i.e. why I chose these as flags, how to implement them, what they mean, possibly some deeper philosophical questions... or just assembly related stuff.)_
