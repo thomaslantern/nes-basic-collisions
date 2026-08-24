@@ -2,9 +2,9 @@
 ### (or "How I learned to love banging my head against a brick wall") ###
 
 ### Update: June 08, 2026 ###
-The code seems to be functioning as intended. I'm working on some refactoring and rewriting this README, so it's more "tutorial friendly" - I should be adding appropriate comments to the code as well. For now, give it a try and see what you think!
+The code seems to be functioning as intended. I'm working on some refactoring and rewriting this README, so that it's more "tutorial friendly," and I should be adding more appropriate comments to the code. For now, give it a try and see what you think!
 
-(This readme is a work in progress, but the code as it stands should function well enough. If you see any issues with is, drop me a message or email me at shikisha at hotmail dot com!)
+(This readme is a work in progress. If you see any issues with this project, drop me a message or email me at shikisha at hotmail dot com!)
 
 As I said in my last lesson, if you're fairly new to programming NES/ASM 6502, you will want to start with my other demo programs/tutorials:
 - [https://github.com/thomaslantern/nes-hello-world](https://github.com/thomaslantern/nes-hello-world)
