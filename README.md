@@ -69,4 +69,12 @@ In case you're wondering - having too much in my NMI was the _second_ major erro
 
 *4) Code involving _nmi_flags_:* Something I felt the need to implement here was a set of flags that determined where you left off in your last game loop. Did you capture the controller inputs? Was the movement logic (outside of NMI) completed before going to NMI? The basic premise here was that, if something didn't complete during the game loop, it was skipped during NMI.
 
-_(My next update will go into more detail about these flags, i.e. why I chose these as flags, how to implement them, what they mean, possibly some deeper philosophical questions... or just assembly related stuff.)_
+Here's the basic idea behind the NMI flags in this program. If you look at the "labels/variables" section of the code, you'll see beside nmi_flags we have
+```asm6502
+; -----LVN (L-Logic, V-video, N-NMI)
+```
+
+Indicating that bits 0, 1, and 2 (the furthest three bits) in the byte are for NMI, Video updates, and Logic updates, which, in this program, only means collision logic. The NMI flag (bit 0) is turned on when we start an NMI, and turned off when we finish one. The reason we have this flag is in case the NMI is so long, that we enter another NMI during our first NMI. Do I think this is likely to happen? Not with the code as it is, no. But, if the NMI logic were especially complicated, or if there was a chance that an NMI wouldn't finish before another NMI started, this flag would prevent the "inner" (second) NMI from trying to run all of the code again. In other words, we use this to skip to the end of the NMI, and turn the flag off, and keep going (i.e. this will bring us quickly back to where we left off in our first NMI).
+
+The video bit (bit 1) is for when we need to update graphics. This only pertains to our sprite since there are no background updates in this program, but again the idea is that we don't need to update the player's position unless this flag is turned on. 
+_(In my next update I'll talk about when that happens!)_

@@ -75,7 +75,7 @@ gfx_update:
 
 finish_nmi:
 	lda nmi_flags
-	and #$FE  				; turn off bit 1 - we've just finished
+	and #%11111110			; turn off bit 1 - we've just finished
 	sta nmi_flags 			; the most recent unfinished NMI
 
 			pla
